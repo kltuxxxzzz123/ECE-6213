@@ -1,0 +1,22 @@
+module uart(sys_clk_13, clk1, clk2, sys_clk, rst);
+output sys_clk_13;
+output clk1;
+output clk2;
+input sys_clk;
+input rst;
+reg [3:0] temp;
+
+assign sys_clk_13 = temp[3];
+assign clk1 = (temp == 4'b1100);
+assign clk2 = (temp > 4'b0110);
+
+always @(posedge sys_clk or negedge rst)
+	begin
+		if (rst == 0)
+		temp <= 4'b0;
+		else if (temp == 4'b1100)
+		temp <= 4'b0;
+		else
+		temp <= temp + 1;
+end
+endmodule
