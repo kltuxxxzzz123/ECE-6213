@@ -1,0 +1,29 @@
+//Universal Asynchronous Receiver Transmitter
+module uart_t();
+wire sys_clk_13;
+wire clk1;
+wire clk2;
+
+reg sys_clk;
+reg rst;
+
+uart start1(.sys_clk_13(sys_clk_13), .clk1(clk1), .clk2(clk2), .sys_clk(sys_clk), .rst(rst));
+
+initial 
+	begin	
+	#0 rst = 1'b0;
+	#0 sys_clk = 1'b0;
+	#10 rst = 1'b1;
+	#1000 $finish;
+	end
+
+always 
+	#5 sys_clk = ~sys_clk;
+
+initial
+	begin
+	$shm_open ("mywave_uart.db");
+	$shm_probe (uart_t, "AS");
+	$shm_save;
+	end
+endmodule
