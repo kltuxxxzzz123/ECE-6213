@@ -1,140 +1,160 @@
 //FIFO(First in First Out) testbench 
-`timescale 1ns/1ps 
-module fifo_t(); 
-parameter width_in = 8; 
-parameter depth = 96; 
-parameter psize = 8; 
+`timescale 1ns/1ps
+module fifo_t();
+parameter width_in = 8;
+parameter depth = 96;
+parameter psize = 8;
 parameter width_out = 16;
 
-reg clk1; 
+reg clk1;
 reg clk2; 
-reg rst_n;
-reg rst; 
-reg en; 
-reg rd; 
+reg rst_n; 
+reg rst;
+reg en;
+reg rd;
 reg wr;
 
 reg [width_in-1:0] din;
 reg watchdog;
 
 wire [width_out-1:0] dout; 
-wire full; wire empty; 
-wire half_full;
+wire full; 
+wire empty; 
+wire half_full; 
 
-event stop; 
-event rst_n_1, rst_n_h; 
-event rst_1, rst_h; 
-event en_1, en_h; 
-event rd_1, rd_h; 
-event wr_1, wr_h; 
+event stop;
+event rst_n_l, rst_n_h;
+event rst_l, rst_h;
+event en_l, en_h;
+event rd_l, rd_h;
+event wr_l, wr_h;
 event wr_data;
 
-fifo start1( .clk1(clk1), .clk2(clk2), .rst_n(rst_n), .rst(rst), .en(en), .rd(rd), 
-             .wr(wr), .din(din), .dout(dout), .full(full), .empty(empty), .half_full(half_full) );
+fifo start1(
+	.clk1(clk1), .clk2(clk2), .rst_n(rst_n), .rst(rst), .en(en), .rd(rd), .wr(wr),
+	.din(din), .dout(dout), .full(full), .empty(empty), .half_full(half_full)
+);
+
+initial 
+	begin
+	clk1 = 1'b0;
+	forever #2 clk1 = ~clk1;
+	end
+
+initial 
+	begin
+	clk2 = 1'b0;
+	forever #1.5 clk2 = ~clk2;
+	end
+
+initial 
+	begin
+	watchdog = 1'b0;
+	@(stop);
+	repeat (5)@(clk1);
+	watchdog = 1'b1;
+	$finish;
+	end
+
+initial 
+	begin
+	# 0 -> rst_n_l; //rst fifo
+	# 0 -> rst_l;
+	# 0 -> en_l;
+	# 0 -> wr_l;
+	# 0 -> rd_l;
+
+	# 1.5 -> rst_n_h;
+	# 0 -> en_h;
+	# 0 -> wr_data; //input data to wr model
+	# 0 -> wr_h;
+	# 300 -> rd_h; //go to rd model
+	# 0 -> wr_l;
+	# 80 -> rst_h; //rst fifo
+	# 5 -> rst_l;
+	# 20 -> wr_data; //go to wr model
+	# 0 -> rd_l;
+	# 0 -> wr_l;
+	# 100 -> rd_h;
+	# 100 -> rst_h;
+	# 10 -> stop;
+	end
+
+initial 
+	begin
+	// async rst, active low
+	forever @(rst_n_l)
+	rst_n = 1'b0;
+	end
+initial 
+	begin
+	forever @(rst_n_h)
+	rst_n = 1'b1;
+	end
+
+initial 
+	begin
+	// sync rst, active high
+	forever @(rst_l)
+	rst = 1'b0;
+	end
+initial 
+	begin
+	forever @(rst_h)
+	rst = 1'b1;
+	end
+
+initial 
+	begin
+	//fifo wr/rd enable
+	forever @(en_l)
+	en = 1'b0;
+	end
+initial 
+	begin
+	forever @(en_h)
+	en = 1'b1;
+	end
+
+initial 
+	begin
+	//rd enable
+	forever @(rd_l)
+	rd = 1'b0;
+	end
+initial 
+	begin
+	forever @(rd_h)
+	rd = 1'b1;
+	end
+
+initial 
+	begin
+	//wr enable
+	forever @(wr_l)
+	wr = 1'b0;
+	end
+initial 
+	begin
+	forever @(wr_h)
+	wr = 1'b1;
+	end
+
+initial 
+	begin
+	forever
+		begin @(wr_data)
+		din = 8'b0;
+		repeat (16) @(posedge clk1)
+		din = din + 1'b1;
+		end
+	end
 
 initial
-  begin clk1 = 1'b0;
-  forever #2 clk1 = ~clk1; 
-  end
-
-initial 
-  begin clk2 = 1'b0; 
-  forever #1.5 clk2 = ~clk2; 
-  end
-
-initial 
-  begin watchdog = 1'b0; 
-  @(stop); 
-  repeat (5)@(clk1);
-  watchdog = 1'b1;
-  $finish; 
-  end
-
-initial 
-  begin # 0 -> rst_n_1;
-  //rst fifo 
-  # 0 -> rst_1; 
-  # 0 -> en_1; 
-  # 0 -> wr_1; 
-  # 0 -> rd_1;
-
-# 1.5 -> rst_n_h;
-# 0 -> en_h;
-# 0 -> wr_data; //input data to wr model
-# 0 -> wr_h;
-# 300 -> rd_h; //go to rd model
-# 0 -> wr_1;
-# 80 -> rst_h; //rst fifo
-# 5 -> rst_1;
-# 20 -> wr_data; //go to wr model
-# 0 -> rd_1;
-# 0 -> wr_1;
-# 100 -> rd_h;
-# 100 -> rst_h;
-# 10 -> stop;
-end
-
-initial 
-  begin // async rst, active low 
-  forever@(rst_n_1) rst_n = 1'b0; 
-  end 
-  
-initial
-  begin 
-  forever @(rst_n_h) rst_n = 1'b1;
-  end
-
-initial 
-  begin // sync rst, active high forever 
-  @(rst_1) rst = 1'b0; 
-  end 
-  
-initial 
-  begin
-  forever @(rst_h) rst = 1'b1; 
-  end
-
-initial 
-  begin //fifo wr/rd enable
-  forever @(en_1) en = 1'b0;
-  end 
-  
-initial 
-  begin 
-  forever @(en_h) en = 1'b1;
-  end
-
-initial
-  begin //rd enable 
-  forever @(rd_1) rd = 1'b0; 
-  end 
-  
-initial 
-  begin 
-  forever @(rd_h) rd = 1'b1; 
-  end
-
-initial 
-  begin //wr enable 
-  forever @(wr_1) wr = 1'b0;
-  end 
-initial 
-  begin
-  forever @(wr_h) wr = 1'b1;
-  end
-
-initial 
-  begin 
-  forever begin @(wr_data) din=8'b0; 
-          repeat (16) @(posedge clk1) din = din + 1'b1;
-          end 
-  end
-
-initial 
-  begin 
-  $shm_open ("mywave_fifo.db");
-  $shm_probe (fifo_t, "AS"); 
-  $shm_save; 
-  end
+	begin
+	$shm_open ("mywave_fifo.db");
+	$shm_probe (fifo_t, "AS");
+	$shm_save;
+	end
 
 endmodule
