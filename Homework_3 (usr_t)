@@ -1,0 +1,66 @@
+//Universal Shift Register testbench
+module usr_t();
+ wire [3:0] data_out, msb_out, lsb_out;
+ reg  [3:0] data_in, msb_in, lsb_in;
+ reg  s1, s0, clk, rst;
+
+     usr start1(.data_out(data_out), 
+		.msb_out(msb_out), 
+		.lsb_out(lsb_out),
+ 		.data_in(data_in), 
+		.msb_in(msb_in), 
+		.lsb_in(lsb_in),
+ 	 	.s1(s1), 
+		.s0(s0), 
+		.clk(clk), 
+		.rst(rst));
+
+ initial
+  begin
+  #0   rst=1'b1;
+  #22  rst=1'b0;
+  #99  rst=1'b1;
+  #22  rst=1'b0;
+  #99  rst=1'b1;
+  #22  rst=1'b0;
+  #330 rst=1'b1;
+  #22  rst=1'b0;
+  #1000  $finish;
+  end
+
+ initial clk=1'b0;
+  always #11 clk=~clk;
+
+ initial
+  begin
+  #0    s0=1'b0;
+  #44   s0=1'b1;
+  #88   s0=1'b0;
+  #121  s0=1'b1;
+  #209  s0=1'b0;
+  #1000  $finish;
+  end
+
+ initial
+  begin
+  #0    s1=1'b0;
+  #154  s1=1'b1;
+  #88   s1=1'b0;
+  #22   s1=1'b1;
+  #198  s1=1'b0;
+  #1000  $finish;
+  end
+
+ initial 
+  begin
+  #0    lsb_in=1'b1;
+        msb_in=1'b1;
+  end
+
+ initial
+  begin
+   $shm_open ("mywave_usr.db");
+   $shm_probe (usr_t,"AS");
+   $shm_save;
+ end
+endmodule
