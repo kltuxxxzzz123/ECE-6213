@@ -1,4 +1,4 @@
-//Universal Asynchronous Receiver Transmitter
+//Universal Asynchronous Receiver Transmitter testbench
 module uart_t();
 wire sys_clk_13;
 wire clk1;
