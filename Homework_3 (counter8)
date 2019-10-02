@@ -1,4 +1,4 @@
-//counter_8
+//counter 8 bits
 `timescale 1ns/10ps
 module ebcounter(out,ebout,out_h,rco,reset,enable,clk);
 output out, out_h, rco, ebout;
