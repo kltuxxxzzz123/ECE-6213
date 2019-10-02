@@ -1,3 +1,4 @@
+Universal Asynchronous Receiver Transmitter
 module uart(sys_clk_13, clk1, clk2, sys_clk, rst);
 output sys_clk_13;
 output clk1;
