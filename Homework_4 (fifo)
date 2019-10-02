@@ -1,0 +1,124 @@
+`timescale 1ns/1ps
+module fifo(clk1, clk2, rst_n, rst, en, rd, wr, din, dout, full, empty, half_full);
+parameter width_in = 8;
+parameter depth = 96;
+parameter psize = 8;
+parameter width_out = 16;
+
+input clk1, clk2; //33HZ & 25HZ clock
+input rst_n; //async rst, active low
+input rst; //sync rst, active high
+input en; //fifo rd/wr enable
+input rd; //rd enable
+input wr; //wr enable
+input din; //data input
+
+output dout; //data output
+output full; //full flag
+output empty; //empty flag
+output half_full; //half hull flag
+
+wire clk1;
+wire clk2;
+wire rst_n;
+wire rst;
+wire en;
+wire rd;
+wire wr;
+wire [width_in-1:0] din;
+
+wire wr_ok; //wr fifo when not full
+wire rd_ok; //rd fifo when not empty
+
+reg [width_out-1:0] dout;
+reg full;
+reg empty;
+reg half_full;
+reg [psize-1:0] count;
+reg [width_in-1:0] memory [0:depth-1]; //fifo memory array
+reg [psize-1:0] rd_ptr;
+reg [psize-1:0] wr_ptr;
+integer n; //loop counter
+
+assign wr_ok = en && wr && (~full);
+assign rd_ok = en && rd && (~empty);
+
+always @(posedge clk1 or posedge clk2 or negedge rst_n or posedge rst)
+	begin
+	// async rst
+	if (!rst_n)
+		begin
+		for (n=0; n < depth; n = n+1)
+			begin
+			memory[n] <= {width_in{1'b0}};
+			end
+		wr_ptr <= 0;
+		rd_ptr <= 0;
+		count <= 0;
+		full <= 1'b0;
+		empty <= 1'b1;
+		half_full <= 1'b0;
+		dout <= 0;
+		end
+		
+	// sync rst
+	else if (rst)
+		begin
+		for (n=0; n < depth; n = n+1)
+			begin
+			memory[n] <= {width_in{1'b0}}; //make memory empty
+			end
+		wr_ptr <= 0;
+		rd_ptr <= 0;
+		count <= 0;
+		full <= 1'b0;
+		empty <= 1'b1;
+		half_full <= 1'b0;
+		dout <= 0;
+		end
+	end
+
+always @(count)
+	// additional half full function
+	begin
+	if (count == 8'b00110000)
+	half_full <= 1'b1;
+	else
+	half_full <= 1'b0;
+	end
+
+always @(posedge clk1 or negedge rst_n)
+	begin
+	if (wr_ok)
+		begin
+		memory[wr_ptr + 1] <= din;
+		wr_ptr = wr_ptr + 1;
+		end
+	if (wr_ok && !rd_ok)
+		begin
+		empty <= 1'b0;
+	if (count == 8'b01011111) //cannot wr, memory full
+		full <= 1'b1;
+	else 
+		count <= count + 1;
+		end
+	end
+
+always @(posedge clk2 or negedge rst_n)
+	begin
+	if (rd_ok)
+		begin
+		dout[7:0] = memory[rd_ptr];
+		dout[15:8] = memory[rd_ptr + 1];
+		rd_ptr = rd_ptr + 2;
+		end
+	if (rd_ok && !wr_ok)
+		begin
+		full <= 1'b0;
+	if (count == 8'b01011111) //cannot rd, memory not data
+		empty <= 1'b1;
+	else 
+		count <= count - 2;
+		end
+	end
+endmodule
