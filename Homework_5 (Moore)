@@ -1,0 +1,61 @@
+module Moore(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
+input [2:0] rgb;
+input new_clk;
+input clk, rst;
+output [1:0] cur_clk, nxt_clk;
+reg [1:0] cur_clk, nxt_clk;
+
+parameter W = 2'b00;
+parameter R = 2'b01;
+parameter G = 2'b10;
+parameter B = 2'b11;
+
+always @(posedge clk or posedge rst)
+begin
+	if (rst)
+	begin
+		cur_clk = 0;
+		nxt_clk = 0;
+		new_clk = 0;
+	end
+end
+
+always @(posedge clk or posedge rst)
+begin
+nxt_clk = cur_clk;
+	if (cur_clk == W)
+	begin
+	casez (rgb)
+	3'b000: nxt_clk = W;
+	default;
+	endcase
+	end
+
+	else if (cur_clk <= R)
+	begin
+	casez (rgb)
+	3'b1??: nxt_clk = R;
+	3'b0??: nxt_clk = W;
+	default;
+	endcase
+	end
+
+	else if (cur_clk <= G)
+	begin
+	casez (rgb)
+	3'b?1?: nxt_clk = G;
+	3'b?0?: nxt_clk = W;
+	default;
+	endcase
+	end
+
+	else if (cur_clk <= B)
+	begin
+	casez (rgb)
+	3'b??1: nxt_clk = B;
+	3'b??0: nxt_clk = W;
+	default;
+	endcase
+	end
+end
+endmodule
