@@ -1,0 +1,61 @@
+module Mealy(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
+input [2:0] rgb;
+input new_clk;
+input clk, rst;
+output [1:0] cur_clk, nxt_clk;
+reg [3:0] index;
+reg [1:0] cur_clk, nxt_clk;
+
+parameter W = 2'b00;
+parameter R = 2'b01;
+parameter G = 2'b10;
+parameter B = 2'b11;
+
+always @(posedge clk or posedge rst)
+begin
+index = {rgb, new_clk};
+nxt_clk = cur_clk;
+
+	if (cur_clk == W)
+	begin
+	casez(index)
+	4'b0000: cur_clk = W;
+	4'b1??1: cur_clk = R;
+	4'b01?1: cur_clk = G;
+	4'b0?11: cur_clk = B;
+	endcase
+	end
+
+	if (cur_clk == R)
+	begin
+	casez(index)
+	4'b0000: cur_clk = W;
+	4'b1??1: cur_clk = R;
+	4'b01?1: cur_clk = W;
+	4'b0?11: cur_clk = W;
+	endcase
+	end
+
+	if (cur_clk == G)
+	begin
+	casez(index)
+	4'b0000: cur_clk = W;
+	4'b1??1: cur_clk = W;
+	4'b01?1: cur_clk = G;
+	4'b0?11: cur_clk = W;
+	endcase
+	end
+
+	if (cur_clk == B)
+	begin
+	casez(index)
+	4'b0000: cur_clk = W;
+	4'b1??1: cur_clk = W;
+	4'b01?1: cur_clk = W;
+	4'b0?11: cur_clk = B;
+	endcase
+	end
+end
+endmodule
+
+ 
