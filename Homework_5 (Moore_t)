@@ -1,0 +1,52 @@
+module Moore_t()
+reg [2:0] rgb;
+reg new_clk;
+reg clk, rst;
+wire [1:0] cur_clk, nxt_clk;
+reg [3:0] index;
+reg [7:0] scoreboard [15:0];
+reg [15:0] flag;
+integer file;
+
+Moore start(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
+
+initial begin
+	clk = 0;
+	flag = 0;
+	rgb = 0;
+	file = $fopen ("Mealy_rst.txt");
+	$readmemb ("scoreboard_mealy.tv", scoreboard);
+	#1 rst = 1;
+	#6 rst = 0;
+	#20000 $fdisplay (file, "completed");
+	$fclose (file);
+	$finish
+end
+
+always
+	#1
+	clk = ~clk;
+always begin
+	#2
+	rgb = $random;
+	new_clk = $random;
+	index = {rgb, new_clk};
+	index = scoreboard[{rgb, clk}];
+
+	if({cur_clk, nxt_clk} == index[3:0] && flag[{rgb, cur_clk}] == 0) begin
+	$fdisplay (file, "case %d_%d_%d_%d_%d", {rgb, new_clk}, rgb, new_clk, cur_clk, nxt_clk);
+	flag [{rgb, cur_clk}] = 1;
+	end
+
+	if (flag == 32'hfffffff) begin
+	$fdisplay (file, "Moore FSM is completed")
+	%fcolse(file);
+	$finish;
+	end
+end
+
+initial begin
+$shm_open ("mealy.db");
+$shm_probe (mealy_tb, "AS");
+$shm_save;
+end	
