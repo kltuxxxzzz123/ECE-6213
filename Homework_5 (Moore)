@@ -1,50 +1,79 @@
 `timescale 1ns/1ns
-module Moore(rgb, new_clr, clk, rst, cur_clr, nxt_clr);
-input [2:0] rgb;
-input new_clr;
-input clk, rst;
-output [1:0] cur_clr, nxt_clr;
-reg [1:0] cur_clr, nxt_clr;
+module mealy(rgb,new_clr,clk,rst,cur_clr,nxt_clr,rf,gf,bf);
+input clk,rst,new_clk;
+input [2:0]rgb;
+output cur_clk,nxt_clk;
+output rf,gf,bf;
+reg [1:0]current;
+reg [1:0]next;
+reg rf,gf,bf;
+reg [7:0]board[15:0];
+integer i;
 
-parameter W = 2'b00;
+parameter W = 2'b00; 
 parameter R = 2'b01;
 parameter G = 2'b10;
 parameter B = 2'b11;
 
-`define cur_clr = 3'b0;
-`define nxt_clr = 3'b0;
-`define new_clr = 3'b0;
+always @(posedge clk or negedge rst) begin
+	if (rst) begin
+	 	cur_clk = 2'b00;
+		nxt_clk = 2'b00;
+		rf = 0;
+		gf = 0;
+		bf = 0;
+		end
+	end
 
-always @(posedge clk or posedge rst)
-begin
-nxt_clr <= cur_clr;
-	if (cur_clr == W) begin
-		case (rgb)
-		3'b000: nxt_clr = W;
+
+always @(posedge clk or negedge rst)begin 
+	nxt_clk = cur_clk;
+	if (cur_clk == W) begin
+		casez (rgb)
+		3'b000: cur_clk = W;
+		3'b1??: cur_clk = R;
+		3'b01?: cur_clk = G;
+		3'b001: cur_clk = B;
 		default;
 		endcase
 	end
 
-	else if (cur_clr == R) begin
-		case (rgb)
-		3'b1??: nxt_clr = R;
-		3'b0??: nxt_clr = W;
+	if (cur_clk == R) begin
+		casez (rgb)
+		3'b1??: cur_clk = R;
+		3'b0??: cur_clk = W;
 		default;
 		endcase
 	end
 
-	else if (cur_clr == G) begin
-		case (rgb)
-		3'b?1?: nxt_clr = G;
-		3'b?0?: nxt_clr = W;
+	if (cur_clk == G) begin
+		casez (rgb)
+		3'b?1?: cur_clk = G;
+		3'b?0?: cur_clk = W;
 		default;
 		endcase
 	end
 
-	else if (cur_clr == B) begin
-		case (rgb)
-		3'b??1: nxt_clr = B;
-		3'b??0: nxt_clr = W;
+	if (cur_clk == B) begin
+		casez (rgb)
+		3'b??1: cur_clk = B;
+		3'b??0: cur_clk = W;
+		default;
+		endcase
+	end
+end
+always @(posedge clk or negedge rst)begin
+	if (cur_clk != W) begin
+		case (cur_clk)
+		2'b01:	begin 
+			rf = 1'b1; gf = 1'b0; bf = 1'b0; 
+			end
+		2'b10: 	begin 
+			rf = 1'b0; gf = 1'b1; bf = 1'b0; 
+			end
+		2'b11: 	begin 
+			rf = 1'b0; gf = 1'b0; bf = 1'b1; 
+			end
 		default;
 		endcase
 	end
