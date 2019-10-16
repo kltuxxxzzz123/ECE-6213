@@ -1,55 +1,52 @@
-module Moore(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
+`timescale 1ns/1ns
+module Moore(rgb, new_clr, clk, rst, cur_clr, nxt_clr);
 input [2:0] rgb;
-input new_clk;
+input new_clr;
 input clk, rst;
-output [1:0] cur_clk, nxt_clk;
-reg [1:0] cur_clk, nxt_clk;
+output [1:0] cur_clr, nxt_clr;
+reg [1:0] cur_clr, nxt_clr;
 
 parameter W = 2'b00;
 parameter R = 2'b01;
 parameter G = 2'b10;
 parameter B = 2'b11;
 
-`define cur_clk = 3'b0;
-`define nxt_clk = 3'b0;
-`define new_clk = 3'b0;
+`define cur_clr = 3'b0;
+`define nxt_clr = 3'b0;
+`define new_clr = 3'b0;
 
 always @(posedge clk or posedge rst)
 begin
-nxt_clk <= cur_clk;
-	if (cur_clk == W)
-	begin
-	casez (rgb)
-	3'b000: nxt_clk = W;
-	default;
-	endcase
+nxt_clr <= cur_clr;
+	if (cur_clr == W) begin
+		case (rgb)
+		3'b000: nxt_clr = W;
+		default;
+		endcase
 	end
 
-	else if (cur_clk == R)
-	begin
-	casez (rgb)
-	3'b1??: nxt_clk = R;
-	3'b0??: nxt_clk = W;
-	default;
-	endcase
+	else if (cur_clr == R) begin
+		case (rgb)
+		3'b1??: nxt_clr = R;
+		3'b0??: nxt_clr = W;
+		default;
+		endcase
 	end
 
-	else if (cur_clk == G)
-	begin
-	casez (rgb)
-	3'b?1?: nxt_clk = G;
-	3'b?0?: nxt_clk = W;
-	default;
-	endcase
+	else if (cur_clr == G) begin
+		case (rgb)
+		3'b?1?: nxt_clr = G;
+		3'b?0?: nxt_clr = W;
+		default;
+		endcase
 	end
 
-	else if (cur_clk == B)
-	begin
-	casez (rgb)
-	3'b??1: nxt_clk = B;
-	3'b??0: nxt_clk = W;
-	default;
-	endcase
+	else if (cur_clr == B) begin
+		case (rgb)
+		3'b??1: nxt_clr = B;
+		3'b??0: nxt_clr = W;
+		default;
+		endcase
 	end
 end
 endmodule
