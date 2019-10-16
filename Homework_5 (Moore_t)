@@ -1,52 +1,46 @@
-module Moore_t()
+`timescale 1ns/1ns
+module moore_t();
 reg [2:0] rgb;
-reg new_clk;
+reg new_clr;
 reg clk, rst;
-wire [1:0] cur_clk, nxt_clk;
+wire [1:0] cur_clr, nxt_clr;
 reg [3:0] index;
 reg [7:0] scoreboard [15:0];
 reg [15:0] flag;
 integer file;
 
-Moore start(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
+moore start(.clk(clk), .rst(rst), .new_clr(new_clr), .rgb(rgb), .cur_clr(cur_clr),
+	 .nxt_clr(nxt_clr));
 
 initial begin
-	clk = 0;
-	flag = 0;
-	rgb = 0;
+	#0 clk = 1'b0;
+	#0 rst = 1'b1;
+	#0 flag = 1'b0;
+	#0 rgb = 1'b0;
 	file = $fopen ("Mealy_rst.txt");
 	$readmemb ("scoreboard_mealy.tv", scoreboard);
-	#1 rst = 1;
-	#6 rst = 0;
+	#1 rst = 1'b1;
+	#6 rst = 1'b0;
 	#20000 $fdisplay (file, "completed");
-	$fclose (file);
-	$finish
+	#20000 $fclose (file);
+	#20000 $finish;
 end
 
-always
-	#1
-	clk = ~clk;
+always 
+#1 clk = ~clk;
+
 always begin
-	#2
-	rgb = $random;
-	new_clk = $random;
+	$display ("%b%b%b", state, cur_clr, nxt_clr);
+	#2 rgb = $random;
+	new_clr = $random;
+	state = {rgb,new_clr};
 	index = {rgb, new_clk};
 	index = scoreboard[{rgb, clk}];
-
-	if({cur_clk, nxt_clk} == index[3:0] && flag[{rgb, cur_clk}] == 0) begin
-	$fdisplay (file, "case %d_%d_%d_%d_%d", {rgb, new_clk}, rgb, new_clk, cur_clk, nxt_clk);
-	flag [{rgb, cur_clk}] = 1;
-	end
-
-	if (flag == 32'hfffffff) begin
-	$fdisplay (file, "Moore FSM is completed")
-	%fcolse(file);
-	$finish;
-	end
 end
 
 initial begin
-$shm_open ("mealy.db");
-$shm_probe (mealy_tb, "AS");
-$shm_save;
-end	
+	$shm_open ("moore.db");
+	$shm_probe (moore_t,"AS");
+	$shm_save;
+end
+endmodule
