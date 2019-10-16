@@ -1,41 +1,40 @@
 `timescale 1ns/1ns
 module moore_t();
-reg [2:0] rgb;
-reg new_clr;
-reg clk, rst;
-wire [1:0] cur_clr, nxt_clr;
-reg [3:0] index;
-reg [7:0] scoreboard [15:0];
-reg [15:0] flag;
+reg new_clr,clk,rst;
+reg [2:0]rgb;
+wire [1:0] cur_clr;
+wire rf,gf,bf;
+wire [1:0] nxt_clr;
+reg flagr,flagb,flagg;
 integer file;
+integer memoery;
+integer i;
+reg [7:0]board[1004:0];
+reg newcolor;
 
-moore start(.clk(clk), .rst(rst), .new_clr(new_clr), .rgb(rgb), .cur_clr(cur_clr),
-	 .nxt_clr(nxt_clr));
+mealy start(.clk(clk), .rst(rst), .new_clr(new_clr), .rgb(rgb), .cur_clr(cur_clr),
+	    .nxt_clr(nxt_clr), .rf(rf), .gf(gf), .bf(bf));
 
-initial begin
+initial
+begin
+	#0 file = $fopen ("moore_report.txt");
 	#0 clk = 1'b0;
 	#0 rst = 1'b1;
-	#0 flag = 1'b0;
-	#0 rgb = 1'b0;
-	file = $fopen ("Mealy_rst.txt");
-	$readmemb ("scoreboard_mealy.tv", scoreboard);
-	#1 rst = 1'b1;
-	#6 rst = 1'b0;
-	#20000 $fdisplay (file, "completed");
-	#20000 $fclose (file);
-	#20000 $finish;
+	#0 flagr = 1'b1;
+	#0 flagb = 1'b1;
+	#0 flagg = 1'b1;
+	#10 rst = 1'b0;
+	#2000 $fclose(file);
+	#10 $finish;
 end
 
-always 
-#1 clk = ~clk;
+always #1 clk = ~clk;
 
 always begin
-	$display ("%b%b%b", state, cur_clr, nxt_clr);
+	$display ("%b%b%b", cur_clr, nxt_clr, newcolor);
 	#2 rgb = $random;
 	new_clr = $random;
-	state = {rgb,new_clr};
-	index = {rgb, new_clk};
-	index = scoreboard[{rgb, clk}];
+	$fwrite(memory,"%b%b%b%b", rgb, cur_clr, nxt_clr, newcolor,"\n");	
 end
 
 initial begin
