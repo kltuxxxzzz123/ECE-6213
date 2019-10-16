@@ -1,52 +1,39 @@
-module Mealy_t()
-reg [2:0] rgb;
-reg new_clk;
-reg clk, rst;
-wire [1:0] cur_clk, nxt_clk;
-reg [3:0] index;
-reg [7:0] scoreboard [15:0];
-reg [15:0] flag;
-integer file;
+`timescale 1ns/1ns
+module mealy_t();
+reg clk,rst,new_clr;
+reg [2:0]rgb;
+wire [1:0] cur_clr;
+wire rf,gf,bf;
+wire [1:0] nxt_clr;
+reg [3:0] state;
+reg flagR,flagG,flagB;
 
-mealy start(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
+mealy t1(.clk(clk), .rst(rst), .new_clr(new_clr), .rgb(rgb), .cur_clr(cur_clr),
+	 .nxt_clr(nxt_clr), .rf(rf), .gf(gf), .bf(bf));
 
-initial begin
-	clk = 0;
-	flag = 0;
-	rgb = 0;
-	file = $fopen ("Mealy_rst.txt");
-	$readmemb ("scoreboard_mealy.tv", scoreboard);
-	#1 rst = 1;
-	#6 rst = 0;
-	#20000 $fdisplay (file, "completed");
-	$fclose (file);
-	$finish
-	end
+initial
+begin
+	#0 clk = 1'b0;
+	#0 rst = 1'b1;
+	#0 flagR = 1'b1;
+	#0 flagG = 1'b1;
+	#0 flagB = 1'b1;
+	#10 rst = 1'b0;
+	#10 $finish;
+end
 
-always
-	#1
-	clk = ~clk;
+always #1 clk = ~clk;
+
 always begin
-	#2
-	rgb = $random;
-	new_clk = $random;
-	index = {rgb, new_clk};
-	$display(%d_%d_%d, index, cur_clk, nxt_clk);
-
-	if({cur_clk, nxt_clk} == index[3:0] && flag[{rgb, new_clk}] == 0) begin
-	$fdisplay (file, "case %d_%d_%d_%d_%d", {rgb, new_clk}, rgb, new_clk, cur_clk, nxt_clk);
-	flag [{rgb, new_clk}] = 1;
-	end
-
-	if (flag == 16'hfff) begin
-	$fdisplay (file, "Mealy FSM is completed")
-	%fcolse(file);
-	$finish;
-	end
+	$display ("%b%b%b", state, cur_clr, nxt_clr);
+	#2 rgb = $random;
+	new_clr = $random;
+	state = {rgb,new_clr};
 end
 
 initial begin
-$shm_open ("mealy.db");
-$shm_probe (mealy_tb, "AS");
-$shm_save;
-end	
+	$shm_open ("mealy.db");
+	$shm_probe (mealy_t,"AS");
+	$shm_save;
+end
+endmodule
