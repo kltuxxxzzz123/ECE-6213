@@ -1,61 +1,94 @@
-module Mealy(rgb, new_clk, clk, rst, cur_clk, nxt_clk);
-input [2:0] rgb;
-input new_clk;
-input clk, rst;
-output [1:0] cur_clk, nxt_clk;
-reg [3:0] index;
-reg [1:0] cur_clk, nxt_clk;
+`timescale 1ns/1ns
+module mealy(rgb, new_clr, clk, rst, cur_clr, nxt_clr, rf, gf, bf);
+input clk,rst,new_clr;
+input [2:0]rgb;
+output cur_clr,nxt_clr;
+output rf,gf,bf;
+//output board;
+reg [1:0]cur_clr;
+reg [1:0]nxt_clr;
+reg [3:0]state;
+reg rf,gf,bf;
+reg [7:0]board[15:0];
+integer i;
 
-parameter W = 2'b00;
+parameter W = 2'b00; 
 parameter R = 2'b01;
 parameter G = 2'b10;
 parameter B = 2'b11;
 
-always @(posedge clk or posedge rst)
-begin
-index = {rgb, new_clk};
-nxt_clk = cur_clk;
-
-	if (cur_clk == W)
-	begin
-	casez(index)
-	4'b0000: cur_clk = W;
-	4'b1??1: cur_clk = R;
-	4'b01?1: cur_clk = G;
-	4'b0?11: cur_clk = B;
-	endcase
+always @(posedge clk or negedge rst) begin // reset block
+	if (rst) begin
+	 	cur_clr = 2'b00;
+		nxt_clr = 2'b00;
+		state = 4'b0000;
+		rf = 0;
+		gf = 0;
+		bf = 0;
+		end
 	end
 
-	if (cur_clk == R)
-	begin
-	casez(index)
-	4'b0000: cur_clk = W;
-	4'b1??1: cur_clk = R;
-	4'b01?1: cur_clk = W;
-	4'b0?11: cur_clk = W;
-	endcase
+
+always @(posedge clk or negedge rst)begin // state machine
+	state = {rgb,new};
+	nxt_clr = cur_clr;
+	for(i=0; i<16; i=i+1)begin	
+	board[i] = {state, cur_clr, nxt_clr};
+	if (cur_clr == W) begin
+		case (state)
+		4'b0000: cur_clr = W;
+		4'b1??1: cur_clr = R;
+		4'b01?1: cur_clr = G;
+		4'b0011: cur_clr = B;
+		default;
+		endcase
 	end
 
-	if (cur_clk == G)
-	begin
-	casez(index)
-	4'b0000: cur_clk = W;
-	4'b1??1: cur_clk = W;
-	4'b01?1: cur_clk = G;
-	4'b0?11: cur_clk = W;
-	endcase
+	if (cur_clr == R) begin
+		case (state)
+		4'b1??0: cur_clr = R;
+		4'b01?1: cur_clr = W;
+		4'b0?11: cur_clr = W;
+		4'b0000: cur_clr = W;
+		default;
+		endcase
 	end
 
-	if (cur_clk == B)
-	begin
-	casez(index)
-	4'b0000: cur_clk = W;
-	4'b1??1: cur_clk = W;
-	4'b01?1: cur_clk = W;
-	4'b0?11: cur_clk = B;
-	endcase
+	if (cur_clr == G) begin
+		case (state)
+		4'b?1?0: cur_clr = G;
+		4'b0000: cur_clr = W;
+		4'b10?1: cur_clr = W;
+		4'b?011: cur_clr = W;
+		default;
+		endcase
+	end
+
+	if (cur_clr == B) begin
+		case (state)
+		4'b??10: cur_clr = B;
+		4'b0000: cur_clr = W;
+		4'b1?01: cur_clr = W;
+		4'b?101: cur_clr = W;
+		default;
+		endcase
+	end
+end
+end
+always @(posedge clk or negedge rst)begin
+	if (cur_clr != W) begin
+		case (cur_clr)
+		2'b01:	begin 
+			rf = 1'b1; gf = 1'b0; bf = 1'b0; 
+			end
+		2'b10: 	begin 
+			rf = 1'b0; gf = 1'b1; bf = 1'b0; 
+			end
+		2'b11: 	begin 
+			rf = 1'b0; gf = 1'b0; bf = 1'b1; 
+			end
+		default;
+		endcase
 	end
 end
 endmodule
-
- 
