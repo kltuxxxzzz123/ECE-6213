@@ -1,0 +1,233 @@
+module traffic_light(light_main, light_branch, sensor, clk, rst,
+			  leda1, ledb1, ledc1, ledd1, lede1, ledf1, ledg1,
+			  leda2, ledb2, ledc2, ledd2, lede2, ledf2, ledg2);
+
+parameter MG_BR = 2'b00;// main green and branch red
+parameter MY_BR = 2'b01;// main yellow and branch red
+parameter MR_BG = 2'b10;// main red and branch green
+parameter MR_BY = 2'b11;// main red and branch yellow
+
+input sensor; // sensor
+input clk; // clock = 50 MHz
+input rst; // reset active low
+
+output leda1, ledb1, ledc1, ledd1, lede1, ledf1, ledg1; // LED1
+output leda2, ledb2, ledc2, ledd2, lede2, ledf2, ledg2; // LED2
+
+output reg [2:0] light_main, light_branch; // output of lights
+
+reg [6:0] LED1_out, LED2_out; 
+reg [3:0] i, j; // LED1 & LED2
+reg finish;
+
+reg[27:0] count1=0, count2=0;
+reg delay20s=0, delayM=0, delayB=0, RED_count_en=0, M_count_en=0, B_count_en=0;
+wire clk_en; // clock enable signal for 1s
+reg[1:0] state, next_state; // next state
+
+always @(posedge clk or posedge rst)
+begin
+	if(rst == 1)
+	state <= 2'b00;
+	else 
+	state <= next_state; 
+end
+
+// FSM
+always @(*)
+begin
+	case(state)
+	MG_BR: //main green and branch red
+		begin 
+		light_main = 3'b001;
+		light_branch = 3'b100;
+		RED_count_en = 0;
+		M_count_en=0;
+		B_count_en=0;
+		if(sensor) 
+			next_state = MY_BR; 
+		// if sensor detects vehicles on branch road, turn main to yellow
+		else 
+			next_state = MG_BR;
+		end
+	MY_BR: //main yellow and branch red
+		begin 
+		light_main = 3'b010;
+		light_branch = 3'b100;
+		RED_count_en = 0;
+		M_count_en=1;
+		B_count_en=0;
+		if(delayM) 
+			next_state = MR_BG; 
+		else 
+			next_state = MY_BR;
+		end
+	MR_BG: //main red and branch green
+		begin
+		light_main = 3'b100;
+		light_branch = 3'b001;
+		RED_count_en = 1;
+		M_count_en=0;
+		B_count_en=0;
+		if(delay20s) 
+			next_state = MR_BY;
+		// branch light for 15s red and 5s yellow then turn to green again 
+		else 
+			next_state = MR_BG;
+		end
+	MR_BY: //main green and branch yellow
+		begin 
+		light_main = 3'b100;
+		light_branch = 3'b010;
+		RED_count_en = 0;
+		M_count_en=0;
+		B_count_en=1;
+		if(delayB) 
+			next_state = MG_BR; 
+		// 5s yellow
+		else 
+			next_state = MR_BY;
+		end
+	default next_state = MG_BR;
+	endcase
+end
+
+
+// j counting (for 1sec)
+always @(posedge clk_en or posedge rst)
+begin
+	if (rst == 1)
+		j = 0;
+	else
+	begin
+		if (~sensor)
+			j = 0;
+		else if (j > 0)
+			j = j - 1;
+		else if (j == 0)
+		begin
+			if (i == 0)
+				finish = 0;
+			else
+				j = 9;
+		end
+	end
+end
+
+// i counting (for 10sec)
+always @(posedge clk_en or posedge rst)
+begin
+	if (rst == 1)
+		i = 0;
+	else 
+	begin 
+		if (~sensor)
+			i = 2;
+		else
+		begin 
+			if (j > 0)
+				i = i;
+			else if (i > 0)
+				i = i - 1;
+			else if (i == 0)
+				finish = 0;
+		end
+	end
+end
+
+always @(posedge clk)
+begin
+	if(clk_en == 1) 
+	begin
+		if(RED_count_en || M_count_en || B_count_en)
+			count2 <= count2 + 1;
+			if((count2 == 15) && RED_count_en) 
+			begin
+				delay20s = 1;
+				delayM = 0;
+				delayB = 0;
+				count2 <= 0;
+			end
+			else if((count2 == 4) && M_count_en) 
+			begin
+				delay20s = 0;
+				delayM = 1;
+				delayB = 0;
+				count2 <= 0;
+			end
+			else if((count2 == 4) && B_count_en) 
+			begin
+				delay20s = 0;
+				delayM = 0;
+				delayB = 1;
+				count2 <= 0;
+			end 
+			else
+			begin
+				delay20s = 0;
+				delayM = 0;
+				delayB = 0;
+			end
+	end
+end
+
+// create 1s clock enable 
+always @(posedge clk)
+begin
+	count1 <= count1 + 1;
+	if(count1 == 50000000) // make counter count at 1sec
+	count1 <= 0;
+end
+
+assign clk_en = count1==50000000 ? 1: 0; // make counter count at 1sec
+
+always @(*)
+begin
+   case( i )
+      4'b0000: LED1_out = 7'b0000001; // "0"     
+      4'b0001: LED1_out = 7'b1001111; // "1" 
+      4'b0010: LED1_out = 7'b0010010; // "2" 
+      4'b0011: LED1_out = 7'b0000110; // "3" 
+      4'b0100: LED1_out = 7'b1001100; // "4" 
+      4'b0101: LED1_out = 7'b0100100; // "5" 
+      4'b0110: LED1_out = 7'b0100000; // "6" 
+      4'b0111: LED1_out = 7'b0001111; // "7" 
+      4'b1000: LED1_out = 7'b0000000; // "8"     
+      4'b1001: LED1_out = 7'b0000100; // "9" 
+      default: LED1_out = 7'b1111111;
+   endcase
+end 
+
+always @(*)
+begin
+   case( j )
+		4'b0000: LED2_out = 7'b0000001; // "0"     
+      4'b0001: LED2_out = 7'b1001111; // "1" 
+      4'b0010: LED2_out = 7'b0010010; // "2" 
+      4'b0011: LED2_out = 7'b0000110; // "3" 
+      4'b0100: LED2_out = 7'b1001100; // "4" 
+      4'b0101: LED2_out = 7'b0100100; // "5"
+		4'b0110: LED2_out = 7'b0100000; // "6" 
+      4'b0111: LED2_out = 7'b0001111; // "7" 
+      4'b1000: LED2_out = 7'b0000000; // "8"     
+      4'b1001: LED2_out = 7'b0000100; // "9" 
+		default: LED2_out = 7'b1111111;
+   endcase
+end 
+
+assign leda1=LED1_out[6];
+assign ledb1=LED1_out[5];
+assign ledc1=LED1_out[4];
+assign ledd1=LED1_out[3];
+assign lede1=LED1_out[2];
+assign ledf1=LED1_out[1];
+assign ledg1=LED1_out[0];
+assign leda2=LED2_out[6];
+assign ledb2=LED2_out[5];
+assign ledc2=LED2_out[4];
+assign ledd2=LED2_out[3];
+assign lede2=LED2_out[2];
+assign ledf2=LED2_out[1];
+assign ledg2=LED2_out[0];
+
+endmodule
