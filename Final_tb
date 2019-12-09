@@ -4,12 +4,14 @@ module final_t();
 reg clk;
 reg rst_n;
 reg sensor;
+reg watchdog;
 
 wire [2:0] light_main;
 wire [2:0] light_branch;
 
 event sensor_l,sensor_h;
 event rst_n_h;
+event stop;
 
 final start1(.light_main(light_main), .light_branch(light_branch), .sensor(sensor), .clk(clk), .rst_n(rst_n));
 
@@ -21,12 +23,22 @@ initial
 
 initial 
 	begin
+	watchdog = 1'b0;
+	@(stop);
+	repeat (5)@(clk);
+	watchdog = 1'b1;
+	$finish;
+	end
+
+initial 
+	begin
 	# 0 -> sensor_l;
  	# 0 -> sensor_h;
 	# 20 -> rst_n_h;
-	# 600 -> sensor_h;
-	# 1200 -> sensor_l;
-	# 1800 -> sensor_h;
+	# 60 -> sensor_h;
+	# 120 -> sensor_l;
+	# 180 -> sensor_h;
+	# 10 -> stop;
 	end
 
 initial
