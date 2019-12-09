@@ -1,0 +1,56 @@
+`timescale 1ns/1ps
+module final_t();
+
+reg clk;
+reg rst_n;
+reg sensor;
+
+wire [2:0] light_main;
+wire [2:0] light_branch;
+
+event sensor_l,sensor_h;
+event rst_n_h;
+
+final start1(.light_main(light_main), .light_branch(light_branch), .sensor(sensor), .clk(clk), .rst_n(rst_n));
+
+initial 
+	begin
+	clk = 1'b0;
+	forever #1.5 clk = !clk;
+ 	end
+
+initial 
+	begin
+	# 0 -> sensor_l;
+ 	# 0 -> sensor_h;
+	# 20 -> rst_n_h;
+	# 600 -> sensor_h;
+	# 1200 -> sensor_l;
+	# 1800 -> sensor_h;
+	end
+
+initial
+	begin
+ 	forever @(rst_n_h);
+ 	rst_n = 1'b1;
+ 	end
+
+initial 
+	begin
+	forever @(sensor_l)
+	sensor = 1'b0;
+	end
+initial 
+	begin
+	forever @(sensor_h)
+	sensor = 1'b1;
+	end
+
+initial
+	begin
+	$shm_open ("mywave_final.db");
+	$shm_probe (final_t, "AS");
+	$shm_save;
+	end
+
+endmodule
